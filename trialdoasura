@@ -1,6 +1,7 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
+local VIM = game:GetService("VirtualInputManager")
 
 local LocalPlayer = Players.LocalPlayer
 local DISTANCE = 23
@@ -11,7 +12,6 @@ local enabled = true
 local lastClick = 0
 local waitingTP = false
 
--- UI DRAGGABLE
 local gui = Instance.new("ScreenGui", game.CoreGui)
 gui.ResetOnSpawn = false
 
@@ -25,7 +25,7 @@ local dragging = false
 local dragStart, startPos
 
 frame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch 
+    if input.UserInputType == Enum.UserInputType.Touch
     or input.UserInputType == Enum.UserInputType.MouseButton1 then
         dragging = true
         dragStart = input.Position
@@ -34,7 +34,7 @@ frame.InputBegan:Connect(function(input)
 end)
 
 frame.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch 
+    if input.UserInputType == Enum.UserInputType.Touch
     or input.UserInputType == Enum.UserInputType.MouseButton1 then
         dragging = false
     end
@@ -54,7 +54,7 @@ end)
 
 local toggle = Instance.new("TextButton", frame)
 toggle.Size = UDim2.new(1,0,1,0)
-toggle.Text = "On"
+toggle.Text = "AUTO VOID: ON"
 toggle.BackgroundColor3 = Color3.fromRGB(40,40,40)
 toggle.TextColor3 = Color3.new(1,1,1)
 
@@ -92,7 +92,7 @@ local function findTarget()
     end
 
     local living = workspace:FindFirstChild("Living")
-    local mobs = workspace:FindFirstChild("Mobs")
+    local mobs   = workspace:FindFirstChild("Mobs")
 
     if living then
         local h, r = scan(living)
@@ -105,17 +105,32 @@ local function findTarget()
     end
 end
 
+local function pressKey2()
+    pcall(function()
+        VIM:SendKeyEvent(true,  Enum.KeyCode.Two, false, game)
+        task.wait(0.02)
+        VIM:SendKeyEvent(false, Enum.KeyCode.Two, false, game)
+    end)
+end
+
 local function clickSlot2()
-    local gui = LocalPlayer.PlayerGui
-    local button = gui:FindFirstChild("BackpackGui")
-        and gui.BackpackGui:FindFirstChild("Backpack")
-        and gui.BackpackGui.Backpack:FindFirstChild("Hotbar")
-        and gui.BackpackGui.Backpack.Hotbar:FindFirstChild("2")
+    local pg = LocalPlayer.PlayerGui
+    local button = pg:FindFirstChild("BackpackGui")
+        and pg.BackpackGui:FindFirstChild("Backpack")
+        and pg.BackpackGui.Backpack:FindFirstChild("Hotbar")
+        and pg.BackpackGui.Backpack.Hotbar:FindFirstChild("2")
 
     if button then
-        for _,v in pairs(getconnections(button.MouseButton1Click)) do
-            v.Function()
+        local ok = pcall(function()
+            for _, v in pairs(getconnections(button.MouseButton1Click)) do
+                v.Function()
+            end
+        end)
+        if not ok then
+            pressKey2()
         end
+    else
+        pressKey2()
     end
 end
 
@@ -133,26 +148,16 @@ local function teleportToMob(mobRoot)
     end
 end
 
--- DETECTA RAGDOLL REAL (SEM VELOCITY)
 local function mobRagdolled(humanoid)
     if not humanoid then return false end
-
-    if humanoid.PlatformStand then
-        return true
-    end
-
-    if humanoid.Sit then
-        return true
-    end
-
+    if humanoid.PlatformStand then return true end
+    if humanoid.Sit then return true end
     local state = humanoid:GetState()
-
     if state == Enum.HumanoidStateType.Physics
     or state == Enum.HumanoidStateType.Ragdoll
     or state == Enum.HumanoidStateType.FallingDown then
         return true
     end
-
     return false
 end
 
@@ -165,10 +170,10 @@ RunService.RenderStepped:Connect(function()
     if humanoid and mobRoot then
         lastClick = tick()
         waitingTP = true
-        
+
         clickSlot2()
 
-        task.delay(0.25,function()
+        task.delay(0.25, function()
             if not mobRagdolled(humanoid) then
                 teleportToMob(mobRoot)
                 task.wait(0.1)
@@ -179,7 +184,7 @@ RunService.RenderStepped:Connect(function()
         local start = tick()
         while tick() - start < 1 do
             if mobRagdolled(humanoid) then
-                task.delay(TP_DELAY,function()
+                task.delay(TP_DELAY, function()
                     teleportVoid()
                     waitingTP = false
                 end)
