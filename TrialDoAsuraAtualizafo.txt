@@ -1,0 +1,193 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+local DISTANCE = 23
+local COOLDOWN = 0.04
+local TP_DELAY = 2
+
+local enabled = true
+local lastClick = 0
+local waitingTP = false
+
+-- UI DRAGGABLE
+local gui = Instance.new("ScreenGui", game.CoreGui)
+gui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0,120,0,40)
+frame.Position = UDim2.new(0.5,-60,0.7,0)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+frame.Active = true
+
+local dragging = false
+local dragStart, startPos
+
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch 
+    or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+    end
+end)
+
+frame.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch 
+    or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if dragging then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+local toggle = Instance.new("TextButton", frame)
+toggle.Size = UDim2.new(1,0,1,0)
+toggle.Text = "On"
+toggle.BackgroundColor3 = Color3.fromRGB(40,40,40)
+toggle.TextColor3 = Color3.new(1,1,1)
+
+toggle.MouseButton1Click:Connect(function()
+    enabled = not enabled
+    toggle.Text = enabled and "AUTO VOID: ON" or "AUTO VOID: OFF"
+end)
+
+local function getMyRoot()
+    local char = LocalPlayer.Character
+    if char then
+        return char:FindFirstChild("HumanoidRootPart")
+    end
+end
+
+local function findTarget()
+    local myRoot = getMyRoot()
+    if not myRoot then return end
+
+    local function scan(folder)
+        for _,obj in pairs(folder:GetDescendants()) do
+            if obj.Name == "HumanoidRootPart" then
+                local model = obj.Parent
+                if model.Name ~= LocalPlayer.Name then
+                    local dist = (obj.Position - myRoot.Position).Magnitude
+                    if dist <= DISTANCE then
+                        local humanoid = model:FindFirstChildOfClass("Humanoid")
+                        if humanoid then
+                            return humanoid, obj
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    local living = workspace:FindFirstChild("Living")
+    local mobs = workspace:FindFirstChild("Mobs")
+
+    if living then
+        local h, r = scan(living)
+        if h then return h, r end
+    end
+
+    if mobs then
+        local h, r = scan(mobs)
+        if h then return h, r end
+    end
+end
+
+local function clickSlot2()
+    local gui = LocalPlayer.PlayerGui
+    local button = gui:FindFirstChild("BackpackGui")
+        and gui.BackpackGui:FindFirstChild("Backpack")
+        and gui.BackpackGui.Backpack:FindFirstChild("Hotbar")
+        and gui.BackpackGui.Backpack.Hotbar:FindFirstChild("2")
+
+    if button then
+        for _,v in pairs(getconnections(button.MouseButton1Click)) do
+            v.Function()
+        end
+    end
+end
+
+local function teleportVoid()
+    local root = getMyRoot()
+    if root then
+        root.CFrame = CFrame.new(-1, -121, 282)
+    end
+end
+
+local function teleportToMob(mobRoot)
+    local root = getMyRoot()
+    if root and mobRoot then
+        root.CFrame = mobRoot.CFrame + Vector3.new(0,-5,0)
+    end
+end
+
+-- DETECTA RAGDOLL REAL (SEM VELOCITY)
+local function mobRagdolled(humanoid)
+    if not humanoid then return false end
+
+    if humanoid.PlatformStand then
+        return true
+    end
+
+    if humanoid.Sit then
+        return true
+    end
+
+    local state = humanoid:GetState()
+
+    if state == Enum.HumanoidStateType.Physics
+    or state == Enum.HumanoidStateType.Ragdoll
+    or state == Enum.HumanoidStateType.FallingDown then
+        return true
+    end
+
+    return false
+end
+
+RunService.RenderStepped:Connect(function()
+    if not enabled then return end
+    if tick() - lastClick < COOLDOWN then return end
+    if waitingTP then return end
+
+    local humanoid, mobRoot = findTarget()
+    if humanoid and mobRoot then
+        lastClick = tick()
+        waitingTP = true
+        
+        clickSlot2()
+
+        task.delay(0.25,function()
+            if not mobRagdolled(humanoid) then
+                teleportToMob(mobRoot)
+                task.wait(0.1)
+                clickSlot2()
+            end
+        end)
+
+        local start = tick()
+        while tick() - start < 1 do
+            if mobRagdolled(humanoid) then
+                task.delay(TP_DELAY,function()
+                    teleportVoid()
+                    waitingTP = false
+                end)
+                return
+            end
+            RunService.RenderStepped:Wait()
+        end
+
+        waitingTP = false
+    end
+end)
