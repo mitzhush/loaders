@@ -105,33 +105,10 @@ local function findTarget()
     end
 end
 
-local function pressKey2()
-    pcall(function()
-        VIM:SendKeyEvent(true,  Enum.KeyCode.Two, false, game)
-        task.wait(0.02)
-        VIM:SendKeyEvent(false, Enum.KeyCode.Two, false, game)
-    end)
-end
-
 local function clickSlot2()
-    local pg = LocalPlayer.PlayerGui
-    local button = pg:FindFirstChild("BackpackGui")
-        and pg.BackpackGui:FindFirstChild("Backpack")
-        and pg.BackpackGui.Backpack:FindFirstChild("Hotbar")
-        and pg.BackpackGui.Backpack.Hotbar:FindFirstChild("2")
-
-    if button then
-        local ok = pcall(function()
-            for _, v in pairs(getconnections(button.MouseButton1Click)) do
-                v.Function()
-            end
-        end)
-        if not ok then
-            pressKey2()
-        end
-    else
-        pressKey2()
-    end
+    VIM:SendKeyEvent(true,  Enum.KeyCode.Two, false, game)
+    task.wait(0.02)
+    VIM:SendKeyEvent(false, Enum.KeyCode.Two, false, game)
 end
 
 local function teleportVoid()
