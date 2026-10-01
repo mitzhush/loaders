@@ -266,10 +266,6 @@ local function BindDrag(handle, onStart, onMove, onEnd)
     end)
 end
 
-
--- ================= LUCIDE ICONS =================
--- Salvos no workspace em MitHub/Lucideicons (source.lua + spritesheets .png).
--- Baixa so na 1a vez; depois le do disco.
 local LucideModule
 local LucideTried = false
 local LucideCache = {}
@@ -292,7 +288,7 @@ local function LoadLucide()
         end
         if not src then
             src = game:HttpGet(LUCIDE_URL)
-            -- manda tudo (sprites, version, fonte) pra pasta do MitHub
+            -- manda tudo (eu esperokk)
             src = src:gsub("lucide%-icons", LUCIDE_DIR)
             if FS_OK then pcall(writefile, LUCIDE_FILE, src) end
         end
@@ -310,7 +306,7 @@ local function LoadLucide()
 end
 
 -- icon aceita: nil/"" | numero | "rbxassetid://123" | "123" | "lucide:house" | "house"
--- retorna: image, rectOffset, rectSize  (rect so existe pra icones Lucide)
+-- retorna: image, rectOffset, rectSize  (rect so existe pros icones lucide)
 local function ResolveIcon(icon)
     if icon == nil or icon == false or icon == "" then return nil end
     if type(icon) == "number" then return "rbxassetid://" .. math.floor(icon) end
@@ -395,7 +391,7 @@ function MitHubLib.new(title, colors)
     local sa = self.Settings.accent
     if type(sa) == "table" and tonumber(sa[1]) and tonumber(sa[2]) and tonumber(sa[3]) then
         self:_ComputeAccent(Color3.fromRGB(
-            math.clamp(sa[1], 0, 255), math.clamp(sa[2], 0, 255), math.clamp(sa[3], 0, 255)
+            math.clamp(sa[1], 0, 60), math.clamp(sa[2], 0, 57), math.clamp(sa[3], 0, 57)
         ))
     end
 
