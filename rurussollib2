@@ -391,7 +391,7 @@ function MitHubLib.new(title, colors)
     local sa = self.Settings.accent
     if type(sa) == "table" and tonumber(sa[1]) and tonumber(sa[2]) and tonumber(sa[3]) then
         self:_ComputeAccent(Color3.fromRGB(
-            math.clamp(sa[1], 0, 60), math.clamp(sa[2], 0, 57), math.clamp(sa[3], 0, 57)
+            math.clamp(sa[1], 0, 255), math.clamp(sa[2], 0, 255), math.clamp(sa[3], 0, 255)
         ))
     end
 
