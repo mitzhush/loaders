@@ -21,7 +21,7 @@ local DEFAULT_W, DEFAULT_H = 460, 440
 local MIN_W, MIN_H = 380, 300
 
 local COLORS = {
-    THEME = Color3.fromRGB(235, 235, 235),
+    THEME = Color3.fromRGB(60, 57, 57),
     THEME_DARK = Color3.fromRGB(40, 40, 40),
     THEME_DARKER = Color3.fromRGB(10, 10, 10),
     THEME_BTN = Color3.fromRGB(22, 22, 22),
