@@ -1,0 +1,1078 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local GuiService = game:GetService("GuiService")
+
+local env = getgenv and getgenv() or _G
+
+if env.SkillCheckPerfect then
+    pcall(env.SkillCheckPerfect.unload)
+end
+
+local NONE = "(none)"
+
+local LANDS = {
+    { "forest", "Forest" },
+    { "crypt", "Crypt" },
+    { "catacombs", "Catacombs" },
+    { "peaks", "Peaks" },
+}
+
+local DIFFICULTY_INDEX = { normal = 1, hard = 2, nightmare = 3 }
+local LAND_INDEX = { forest = 1, crypt = 2, catacombs = 3, peaks = 4 }
+
+local SCENES = {
+    forest = { "Wolf Den", "Roadside Ambush", "Bandit Scouts", "Wolf Pack", "Bandit Camp", "Highwaymen", "The Alpha's Pack", "The Chief's Guard", "The Bandit Chief", "The White Stag", "The Beaten Bandit", "Wolves on the Road", "The Sealed Letter", "Woodcutters", "The Merchant's Wagon", "The Rich Wagon", "The Villagers", "The Watch Patrol", "The Wounded Knight", "The Poachers", "The Toll Road", "Peddler's Cart", "Charcoal Burner", "Hidden Cache", "Fallen Wagon", "Hunters' Clearing", "Mossy Hollow", "Old Watchtower" },
+    crypt = { "Grave Robbers", "Rat Nest", "Robber and Rats", "The Risen", "Acolyte and Risen", "The Robbers' Dig", "Rat Swarm", "The Robbers' Camp", "The Open Churchyard", "The Acolyte's Dead", "Tomb Guards", "The Crypt Door", "The Gravecaller", "The Fat Rat", "The Rats' Tomb", "The Fallen Wall", "The Coin Box", "The Marked Floor", "The Open Graves", "The Acolyte", "The Pilgrim's Pack", "The Old Knight's Tomb", "The Woman's Brother", "Gravedigger's Hut", "Traveller's Cart", "Open Tomb", "Robbers' Sack", "The Church Gate", "The Church Wall", "Under the Yews" },
+    catacombs = { "The Keepers' Watch", "The Old Dead", "Ghouls", "Cave Spiders", "Robbers", "A Mourner and the Dead", "The Keepers' Patrol", "The Waking Dead", "The Ghouls' Feast", "The Spider Gallery", "The Robbers' Dig", "The Mourners' Rite", "Keeper Guards", "The Guard and the Mourner", "The Red Lich", "The Hidden King", "The Offering", "Bones on the Stair", "The Robber Under the Stone", "The Ghoul's Meal", "The Sealed Grave", "The Lost Lamp", "The Talking Skull", "Spiders in the Walls", "The Masons' Marks", "The Bell Rope", "Grave Gold", "The Sleeping Guard", "The Watcher", "Two Doors", "The Cold Camp", "The Drop", "The Red Ring", "The Keepers' Gate", "The Seals", "The Robbers' Map", "The Lost Novice", "The Hall of Names", "The Nest", "A Robber's Bundle", "The Keepers' Trade", "An Open Grave", "Grave Goods", "The Root Shaft", "A Dry Tomb", "The Keepers' Hearth" },
+    peaks = { "Amuni Hunters", "Snow Wolves", "Cold Spirits", "A Windcaller and a Hunter", "Wind and Ice", "The Hunting Party", "The Pack", "The Storm", "The Windcallers", "Wolves in the Storm", "The Giant Brute", "The Brute's Hunt", "The Elder Giant", "The White Wyrm", "The Frozen Traveller", "The Ram Herd", "The Sleeping Giant", "The Cornice", "The Giant's Footprint", "The Ice Shrine", "The Lost Climber", "The Rope Bridge", "The Warm Crack", "The Old Battlefield", "The Cold Spirits", "The Watchfire", "The Amuni Child", "The Snowstorm", "Wolf Tracks", "The Amuni", "The Drovers", "The Eyrie", "The Slide", "The Ice Cave", "The Giant's Axe", "The Amuni Way", "A Drover's Cart", "The Amuni Traders", "A Frozen Pack", "The Giants' Cache", "The Giant's Helm", "A Herders' Hut", "Under the Overhang" },
+}
+
+local SKILLS = {
+    { id = "lunge", label = "Warrior - Lunge" },
+    { id = "twin_cut", label = "Rogue - Twin Cut" },
+    { id = "firebolt", label = "Mage - Firebolt" },
+    { id = "impale", label = "Lancer - Impale" },
+    { id = "rousing_chord", label = "Bard - Rousing Chord" },
+    { id = "aimed_shot", label = "Archer - Aimed Shot" },
+    { id = "pommel_strike", label = "Warrior - Pommel Strike" },
+    { id = "deep_cut", label = "Rogue - Deep Cut" },
+    { id = "hold_the_line", label = "Lancer - Hold the Line" },
+    { id = "pinning_shot", label = "Archer - Pinning Shot" },
+    { id = "fire_wall", label = "Mage - Fire Wall" },
+    { id = "lullaby", label = "Bard - Lullaby" },
+    { id = "vow_of_protection", label = "Warrior - Vow of Protection" },
+    { id = "judgement", label = "Warrior - Judgement" },
+    { id = "contract", label = "Warrior - Contract" },
+    { id = "stance_shift", label = "Warrior - Stance Shift" },
+    { id = "blood_frenzy", label = "Warrior - Blood Frenzy" },
+    { id = "reckless_swing", label = "Warrior - Reckless Swing" },
+    { id = "challenge", label = "Rogue - Challenge" },
+    { id = "riposte", label = "Rogue - Riposte" },
+    { id = "mark_for_death", label = "Rogue - Mark for Death" },
+    { id = "execute", label = "Rogue - Execute" },
+    { id = "pocket_sand", label = "Rogue - Pocket Sand" },
+    { id = "rob", label = "Rogue - Rob" },
+    { id = "mend", label = "Mage - Mend" },
+    { id = "smite", label = "Mage - Smite" },
+    { id = "thornroot", label = "Mage - Thornroot" },
+    { id = "wild_growth", label = "Mage - Wild Growth" },
+    { id = "ignite", label = "Mage - Ignite" },
+    { id = "detonate", label = "Mage - Detonate" },
+    { id = "shield_wall", label = "Lancer - Shield Wall" },
+    { id = "vigil", label = "Lancer - Vigil" },
+    { id = "leap", label = "Lancer - Leap" },
+    { id = "skewer", label = "Lancer - Skewer" },
+    { id = "crowd_pleaser", label = "Lancer - Crowd Pleaser" },
+    { id = "spear_throw", label = "Lancer - Spear Throw" },
+    { id = "command", label = "Bard - Command" },
+    { id = "decree", label = "Bard - Decree" },
+    { id = "verse", label = "Bard - Verse" },
+    { id = "saga", label = "Bard - Saga" },
+    { id = "mockery", label = "Bard - Mockery" },
+    { id = "bag_of_tricks", label = "Bard - Bag of Tricks" },
+    { id = "volley", label = "Archer - Volley" },
+    { id = "steady_aim", label = "Archer - Steady Aim" },
+    { id = "call_hawk", label = "Archer - Call Hawk" },
+    { id = "snare_trap", label = "Archer - Snare Trap" },
+    { id = "blast", label = "Archer - Blast" },
+    { id = "scattershot", label = "Archer - Scattershot" },
+}
+
+local SKILL_BY_LABEL = {}
+local SKILL_LABELS = { NONE }
+for _, skill in ipairs(SKILLS) do
+    SKILL_BY_LABEL[skill.label] = skill.id
+    table.insert(SKILL_LABELS, skill.label)
+end
+
+local settings = {
+    Enabled = false,
+    Humanize = true,
+    ShowResult = true,
+    AutoClick = false,
+    ClickDelay = 0,
+    ClickInterval = 0.08,
+    AutoStart = false,
+    Difficulty = "normal",
+    Land = "forest",
+    Delay = 6,
+    AutoAgain = false,
+    AutoCamp = false,
+    FirstCamp = "continue",
+    AutoContinue = false,
+    SkipCutscenes = false,
+    AutoVote = false,
+    VoteMode = "first",
+    AutoAttack = false,
+    TargetMode = "most",
+    AutoSkill = false,
+    Skills = { NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE },
+    AutoScenes = false,
+    Scenes = {},
+}
+
+for _, land in ipairs(LANDS) do
+    local slots = {}
+    for index = 1, #SCENES[land[1]] do
+        slots[index] = NONE
+    end
+    settings.Scenes[land[1]] = slots
+end
+
+local runState = {
+    inRun = false,
+    lastEnd = 0,
+    lastAttempt = 0,
+    lastAgain = 0,
+    lastContinue = 0,
+    lastScreen = nil,
+    lastCampMid = false,
+    endKind = "other",
+    viewSig = nil,
+    step = nil,
+    stepCount = 0,
+    goCount = 0,
+}
+
+local fightState = {
+    token = 0,
+    you = nil,
+    sides = {},
+    hp = {},
+    down = {},
+}
+
+local alive = true
+
+local MitHubLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/mitzhush/loaders/refs/heads/main/rurussollib4"))()
+local lib = MitHubLib.new("MitHub", nil)
+lib:SetVersion("v1.3")
+lib:SetSubtitle("Skillcheck, Run and Combat")
+local MitHub = lib.ScreenGui
+
+local TabMain = lib:CreateTab("Skillcheck", true, "crosshair")
+local TabRun = lib:CreateTab("Run", false, "footprints")
+local TabFight = lib:CreateTab("Combat", false, "swords")
+local TabScenes = lib:CreateTab("Scenes", false, "layers")
+
+lib:MakeSeparator(TabMain, "Skillcheck")
+
+lib:AddToggle(TabMain, "Perfect Skillcheck", function(v)
+    settings.Enabled = v
+end, nil, "skillcheck.perfect")
+
+local humanizeToggle = lib:AddToggle(TabMain, "Humanize timing", function(v)
+    settings.Humanize = v
+end, nil, "skillcheck.humanize")
+pcall(function() humanizeToggle.SetState(true, true) end)
+
+local resultToggle = lib:AddToggle(TabMain, "Show result on screen", function(v)
+    settings.ShowResult = v
+end, nil, "skillcheck.showresult")
+pcall(function() resultToggle.SetState(true, true) end)
+
+lib:MakeSeparator(TabMain, "Auto click (5 clicks)")
+
+lib:AddToggle(TabMain, "Auto click on skillcheck", function(v)
+    settings.AutoClick = v
+end, nil, "skillcheck.autoclick")
+
+lib:MakeSlider(TabMain, "Delay before 1st click (s)", 0, 1, settings.ClickDelay, 2, function(v)
+    settings.ClickDelay = v
+end)
+
+lib:MakeSlider(TabMain, "Interval between clicks (s)", 0.01, 0.5, settings.ClickInterval, 2, function(v)
+    settings.ClickInterval = v
+end)
+
+lib:MakeSeparator(TabRun, "Auto Start Run")
+
+local autoToggle = lib:AddToggle(TabRun, "Auto Start Run (lobby)", function(v)
+    settings.AutoStart = v
+    if v then
+        runState.inRun = false
+        runState.lastAttempt = 0
+        runState.step = nil
+        runState.stepCount = 0
+        runState.goCount = 0
+    end
+end, nil, "run.autostart")
+
+lib:AddDropdown(TabRun, "Difficulty", { "Normal", "Hard", "Nightmare" }, "Normal", function(v)
+    if v then
+        settings.Difficulty = string.lower(v)
+    end
+end, "run.difficulty", true)
+
+lib:AddDropdown(TabRun, "Map", { "Forest", "Crypt", "Catacombs", "Peaks" }, "Forest", function(v)
+    if v then
+        settings.Land = string.lower(v)
+    end
+end, "run.land", true)
+
+lib:MakeSlider(TabRun, "Interval between attempts (s)", 2, 30, settings.Delay, 0, function(v)
+    settings.Delay = v
+end)
+
+lib:MakeSeparator(TabRun, "Inside the dungeon")
+
+lib:AddToggle(TabRun, "Auto Start in dungeon (only after the boss)", function(v)
+    settings.AutoAgain = v
+end, nil, "run.again")
+
+lib:AddToggle(TabRun, "Auto Continue (includes Victory)", function(v)
+    settings.AutoContinue = v
+end, nil, "run.continue")
+
+lib:AddToggle(TabRun, "Skip Cutscenes", function(v)
+    settings.SkipCutscenes = v
+end, nil, "run.skipcutscenes")
+
+lib:AddToggle(TabRun, "Vote on dialogues", function(v)
+    settings.AutoVote = v
+end, nil, "run.vote")
+
+lib:AddDropdown(TabRun, "Dialogue choice", { "First option", "Last option" }, "First option", function(v)
+    if v then
+        settings.VoteMode = v == "Last option" and "last" or "first"
+    end
+end, "run.votemode", true)
+
+lib:MakeSeparator(TabRun, "Campfire")
+
+lib:AddToggle(TabRun, "Auto Campfire", function(v)
+    settings.AutoCamp = v
+end, nil, "run.camp")
+
+lib:AddDropdown(TabRun, "First campfire", { "Continue", "Go home and redo" }, "Continue", function(v)
+    if v then
+        settings.FirstCamp = v == "Go home and redo" and "home" or "continue"
+    end
+end, "run.firstcamp", true)
+
+lib:MakeSeparator(TabFight, "Auto Attack")
+
+lib:AddToggle(TabFight, "Auto Attack", function(v)
+    settings.AutoAttack = v
+end, nil, "fight.autoattack")
+
+lib:AddDropdown(TabFight, "Target", { "Most HP", "Least HP" }, "Most HP", function(v)
+    if v then
+        settings.TargetMode = v == "Least HP" and "least" or "most"
+    end
+end, "fight.target", true)
+
+lib:MakeSeparator(TabFight, "Auto Skill (priority)")
+
+lib:AddToggle(TabFight, "Auto Skill", function(v)
+    settings.AutoSkill = v
+end, nil, "fight.autoskill")
+
+for slot = 1, #settings.Skills do
+    lib:AddDropdown(TabFight, "Skill - Priority " .. slot, SKILL_LABELS, NONE, function(v)
+        if v then
+            settings.Skills[slot] = v
+        end
+    end, "fight.skill." .. slot, true)
+end
+
+lib:MakeSeparator(TabScenes, "Auto Clear Scenes")
+
+lib:AddToggle(TabScenes, "Auto Clear Scenes", function(v)
+    settings.AutoScenes = v
+    runState.viewSig = nil
+end, nil, "scene.auto")
+
+task.spawn(function()
+    for _, land in ipairs(LANDS) do
+        if not alive then
+            return
+        end
+        local id = land[1]
+        local label = land[2]
+        lib:MakeSeparator(TabScenes, label)
+        local options = { NONE }
+        for _, title in ipairs(SCENES[id]) do
+            table.insert(options, title)
+        end
+        for slot = 1, #SCENES[id] do
+            if not alive then
+                return
+            end
+            lib:AddDropdown(TabScenes, label .. " - Priority " .. slot, options, NONE, function(v)
+                if v then
+                    settings.Scenes[id][slot] = v
+                end
+            end, "scene." .. id .. "." .. slot, true)
+            task.wait()
+        end
+    end
+end)
+
+local player = Players.LocalPlayer
+local screens = player:WaitForChild("PlayerScripts"):WaitForChild("Controllers"):WaitForChild("Screens")
+local shared = ReplicatedStorage:WaitForChild("Shared")
+local combat = shared:WaitForChild("Combat")
+local SkillCheck = require(screens:WaitForChild("SkillCheck"))
+local Fight = require(screens:WaitForChild("Fight"))
+local Checks = require(combat:WaitForChild("Checks"))
+local Fighter = require(combat:WaitForChild("Fighter"))
+local Skills = require(combat:WaitForChild("Skills"))
+local Ui = require(shared:WaitForChild("Ui"))
+local Net = require(ReplicatedStorage:WaitForChild("7LData")).Net
+
+local Cutscene = nil
+pcall(function()
+    Cutscene = require(screens:WaitForChild("Cutscene", 5))
+end)
+
+local skillDefs = {}
+for _, def in ipairs(Skills.list) do
+    skillDefs[def.id] = def
+end
+
+local PERFECT = Checks.PERFECT
+local STEP = 0.005
+
+local shown = nil
+
+local function allPerfect(grade)
+    if type(grade) ~= "table" then
+        return false
+    end
+    local count = 0
+    for _, value in pairs(grade) do
+        count = count + 1
+        if value ~= PERFECT then
+            return false
+        end
+    end
+    return count > 0
+end
+
+local function scan(id, seed, from, to, build)
+    local first, last
+    local t = from
+    while t <= to do
+        if allPerfect(Checks.grade(id, seed, build(t))) then
+            first = first or t
+            last = t
+        elseif first then
+            break
+        end
+        t = t + STEP
+    end
+    return first, last
+end
+
+local function spread(first, last, humanize)
+    if humanize then
+        return first + (last - first) * (0.25 + 0.5 * math.random())
+    end
+    return (first + last) / 2
+end
+
+local function steadiest(def, seed)
+    local bestT = def.tire
+    local bestM = math.huge
+    local t = 0.07
+    while t <= def.tire do
+        local x, y = Checks.aim(def, seed, t)
+        local m = math.sqrt(x * x + y * y)
+        if m < bestM then
+            bestT = t
+            bestM = m
+        end
+        t = t + STEP
+    end
+    return bestT
+end
+
+local function build(def, id, seed, humanize)
+    local kind = def.kind
+    if kind == "thrust" or kind == "cuts" or kind == "strums" then
+        local presses = {}
+        for i, mark in ipairs(def.marks) do
+            local offset = humanize and (math.random() * 2 - 1) * 0.03 or 0
+            presses[i] = mark + offset
+        end
+        return presses
+    end
+    if kind == "gather" then
+        local ratio = spread(def.perfect[1], def.perfect[2], humanize)
+        return { 0.2, 0.2 + ratio * def.fill }
+    end
+    if kind == "rally" then
+        local presses = {}
+        for i = 1, def.perfect do
+            presses[i] = 0.12 + 0.08 * (i - 1)
+        end
+        return presses
+    end
+    if kind == "sigil" then
+        local presses = {}
+        for i = 1, def.count do
+            presses[i] = 0.2 * i
+        end
+        return presses
+    end
+    if kind == "steady" then
+        local first, last = scan(id, seed, 0.07, def.tire, function(t)
+            return { 0.2, 0.2 + t }
+        end)
+        if first then
+            return { 0.2, 0.2 + spread(first, last, humanize) }
+        end
+        return nil
+    end
+    local first, last = scan(id, seed, Checks.EARLIEST, def.wait, function(t)
+        return { t }
+    end)
+    if first then
+        return { spread(first, last, humanize) }
+    end
+    return nil
+end
+
+local function solve(id, seed, humanize)
+    local def = Checks.list[id]
+    if not def then
+        return nil
+    end
+    local modes = { humanize == true, false }
+    for _, mode in ipairs(modes) do
+        local presses = build(def, id, seed, mode)
+        if presses and allPerfect(Checks.grade(id, seed, presses)) and #Checks.clean(presses) == #presses then
+            return presses
+        end
+    end
+    if def.kind == "steady" then
+        return { 0.2, 0.2 + steadiest(def, seed) }
+    end
+    return nil
+end
+
+local function freeSpot(gui, x, y)
+    local ok, objects = pcall(function()
+        return gui:GetGuiObjectsAtPosition(x, y)
+    end)
+    if not ok then
+        return true
+    end
+    for _, object in ipairs(objects) do
+        if object.Active or object:IsA("GuiButton") then
+            return false
+        end
+    end
+    return true
+end
+
+local function clickPoint()
+    local gui = player:FindFirstChildOfClass("PlayerGui")
+    local size = workspace.CurrentCamera.ViewportSize
+    local inset = GuiService:GetGuiInset()
+    local spots = {
+        { 0.5, 0.5 }, { 0.5, 0.4 }, { 0.5, 0.6 }, { 0.4, 0.5 }, { 0.6, 0.5 },
+        { 0.5, 0.3 }, { 0.5, 0.7 }, { 0.3, 0.4 }, { 0.7, 0.4 },
+    }
+    for _, spot in ipairs(spots) do
+        local x = size.X * spot[1]
+        local y = size.Y * spot[2]
+        if gui and freeSpot(gui, x, y) and freeSpot(gui, x, y - inset.Y) then
+            return x, y
+        end
+    end
+    return size.X / 2, size.Y / 2
+end
+
+local function pressOnce(x, y)
+    if UserInputService.KeyboardEnabled then
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+        task.wait(0.01)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+    end
+    if UserInputService.TouchEnabled then
+        pcall(function() VirtualInputManager:SendTouchEvent(1, 0, x, y) end)
+        pcall(function() VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 0) end)
+        task.wait(0.02)
+        pcall(function() VirtualInputManager:SendTouchEvent(1, 2, x, y) end)
+        pcall(function() VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 0) end)
+    end
+end
+
+local function autoClick()
+    if settings.ClickDelay > 0 then
+        task.wait(settings.ClickDelay)
+    end
+    local x, y = clickPoint()
+    for _ = 1, 5 do
+        if not alive then
+            return
+        end
+        pcall(pressOnce, x, y)
+        task.wait(settings.ClickInterval)
+    end
+end
+
+local originalPlay = SkillCheck.play
+local originalWord = SkillCheck.word
+
+SkillCheck.play = function(skillId, clip, caster, target, seed, ...)
+    if settings.AutoClick then
+        task.spawn(autoClick)
+    end
+    if not settings.Enabled then
+        return originalPlay(skillId, clip, caster, target, seed, ...)
+    end
+    local solved, ideal = pcall(solve, skillId, seed, settings.Humanize)
+    if not (solved and ideal) then
+        return originalPlay(skillId, clip, caster, target, seed, ...)
+    end
+    local result = Checks.grade(skillId, seed, ideal)
+    if settings.ShowResult and result then
+        shown = result[1]
+    end
+    local started = os.clock()
+    local ok, presses, grade = pcall(originalPlay, skillId, clip, caster, target, seed, ...)
+    shown = nil
+    if not ok then
+        error(presses, 0)
+    end
+    if presses == nil then
+        return presses, grade
+    end
+    local missing = ideal[#ideal] - (os.clock() - started)
+    if missing > 0 then
+        task.wait(missing)
+    end
+    return ideal, result
+end
+
+SkillCheck.word = function(grade, rig)
+    if shown ~= nil then
+        grade = shown
+    end
+    return originalWord(grade, rig)
+end
+
+local function notify(text)
+    pcall(function()
+        lib:Notify(text, 4)
+    end)
+end
+
+local function visible(inst)
+    if not (inst and inst:IsA("GuiObject")) then
+        return false
+    end
+    local screen = inst:FindFirstAncestorOfClass("ScreenGui")
+    if not (screen and screen.Enabled) then
+        return false
+    end
+    local node = inst
+    while node and node ~= screen do
+        if node:IsA("GuiObject") and not node.Visible then
+            return false
+        end
+        node = node.Parent
+    end
+    return true
+end
+
+local function click(inst)
+    if not inst then
+        return false
+    end
+    if firesignal then
+        pcall(function() firesignal(inst.Activated) end)
+        pcall(function() firesignal(inst.MouseButton1Click) end)
+        return true
+    end
+    local ok = pcall(function()
+        local center = inst.AbsolutePosition + inst.AbsoluteSize / 2
+        local inset = GuiService:GetGuiInset()
+        VirtualInputManager:SendMouseButtonEvent(center.X + inset.X, center.Y + inset.Y, 0, true, game, 0)
+        task.wait(0.05)
+        VirtualInputManager:SendMouseButtonEvent(center.X + inset.X, center.Y + inset.Y, 0, false, game, 0)
+    end)
+    return ok
+end
+
+local function findButtonByText(root, text)
+    for _, inst in ipairs(root:GetDescendants()) do
+        if (inst:IsA("TextLabel") or inst:IsA("TextButton")) and string.find(string.lower(inst.Text), text, 1, true) then
+            local button = inst:IsA("GuiButton") and inst or inst:FindFirstAncestorWhichIsA("GuiButton")
+            if button and visible(button) then
+                return button
+            end
+        end
+    end
+    return nil
+end
+
+local function child(root, ...)
+    local node = root
+    for _, name in ipairs({ ... }) do
+        node = node and node:FindFirstChild(name)
+    end
+    return node
+end
+
+local function hubFrame()
+    local gui = player:FindFirstChildOfClass("PlayerGui")
+    return child(gui, "Hub", "Hub")
+end
+
+local function lobbyStep(now)
+    local hub = hubFrame()
+    if not hub then
+        return nil
+    end
+    local difficulty = child(hub, "Difficulty", "Window")
+    if difficulty then
+        local card = difficulty:FindFirstChild("Card" .. (DIFFICULTY_INDEX[settings.Difficulty] or 1))
+        local selected = card and card:FindFirstChild("Selected")
+        if selected and not selected.Visible then
+            click(card:FindFirstChild("Pick"))
+            click(card:FindFirstChild("Hit"))
+            return "difficulty"
+        end
+        click(difficulty:FindFirstChild("Go"))
+        runState.lastAttempt = now
+        runState.goCount = runState.goCount + 1
+        return "go"
+    end
+    local lands = child(hub, "Lands", "Window")
+    if lands then
+        local card = child(lands, "Row", "Content", "Card" .. (LAND_INDEX[settings.Land] or 1))
+        if card then
+            click(card:FindFirstChild("Key"))
+            click(card:FindFirstChild("Hit"))
+        end
+        return "lands"
+    end
+    local travel = child(hub, "Travel", "Window")
+    if travel then
+        local card = travel:FindFirstChild("Card1")
+        if card then
+            click(card:FindFirstChild("Key"))
+            click(card:FindFirstChild("Hit"))
+        end
+        return "travel"
+    end
+    local start = hub:FindFirstChild("StartRun")
+    if visible(start) and now - math.max(runState.lastEnd, runState.lastAttempt) >= settings.Delay then
+        click(start)
+        return "start"
+    end
+    return nil
+end
+
+local function stopAutoStart(reason)
+    settings.AutoStart = false
+    pcall(function() autoToggle.SetState(false, true) end)
+    notify("Auto Start Run turned off: " .. reason)
+end
+
+local function tick()
+    local now = os.clock()
+    local gui = player:FindFirstChildOfClass("PlayerGui")
+    if settings.AutoContinue and gui and now - runState.lastContinue > 3 and Fight.over() then
+        local win = gui:FindFirstChild("Win", true)
+        local button = win and visible(win) and findButtonByText(win, "continue")
+        if button then
+            runState.lastContinue = now
+            task.wait(0.6 + math.random() * 0.8)
+            click(button)
+            return
+        end
+    end
+    if (settings.AutoAgain or settings.FirstCamp == "home") and gui and now - runState.lastAgain > 4 then
+        local again = gui:FindFirstChild("Again", true)
+        if visible(again) then
+            local allowed = settings.AutoAgain
+            if runState.endKind == "first" then
+                allowed = settings.FirstCamp == "home"
+            end
+            if allowed then
+                runState.lastAgain = now
+                task.wait(0.6 + math.random() * 0.8)
+                click(again)
+                return
+            end
+        end
+    end
+    if not settings.AutoStart or runState.inRun then
+        runState.step = nil
+        runState.stepCount = 0
+        return
+    end
+    local step = lobbyStep(now)
+    if step == nil then
+        runState.step = nil
+        runState.stepCount = 0
+        return
+    end
+    if step == runState.step then
+        runState.stepCount = runState.stepCount + 1
+    else
+        runState.step = step
+        runState.stepCount = 1
+    end
+    if runState.goCount >= 3 then
+        stopAutoStart("the server did not start the run after 3 attempts")
+    elseif runState.stepCount > 8 then
+        stopAutoStart("got stuck at step " .. step .. " (map locked or click had no effect)")
+    end
+end
+
+local function applySnap(snap)
+    if type(snap) ~= "table" or type(snap.fighters) ~= "table" then
+        return
+    end
+    for _, fighter in pairs(snap.fighters) do
+        fightState.hp[fighter.id] = fighter.hp
+        fightState.down[fighter.id] = fighter.down
+    end
+end
+
+local function pickTarget()
+    local best
+    local bestHp
+    for id, side in pairs(fightState.sides) do
+        local hp = fightState.hp[id]
+        if side == "enemy" and hp and hp > 0 and not fightState.down[id] then
+            local better = bestHp == nil
+            if not better then
+                if settings.TargetMode == "least" then
+                    better = hp < bestHp
+                else
+                    better = hp > bestHp
+                end
+            end
+            if better then
+                best = id
+                bestHp = hp
+            end
+        end
+    end
+    return best
+end
+
+local function pickAlly()
+    local best
+    local bestHp
+    for id, side in pairs(fightState.sides) do
+        local hp = fightState.hp[id]
+        if side == "party" and hp and not fightState.down[id] then
+            if bestHp == nil or hp < bestHp then
+                best = id
+                bestHp = hp
+            end
+        end
+    end
+    return best
+end
+
+local function livingParty()
+    local list = {}
+    for id, side in pairs(fightState.sides) do
+        if side == "party" and not fightState.down[id] then
+            table.insert(list, id)
+        end
+    end
+    table.sort(list)
+    return list
+end
+
+local function useSkill(prompt, entry, def)
+    local reach = entry.reach or def.target
+    local target = nil
+    if not Fighter.noTarget(def, reach) then
+        if reach == "ally" then
+            target = pickAlly()
+        else
+            target = pickTarget()
+        end
+        if not target then
+            return false
+        end
+    end
+    local skipShot = reach == "allies" or reach == "self" or (reach == "enemies" and not def.hit)
+    if not skipShot and def.cast == true then
+        skipShot = not def.hit
+    end
+    local shotTarget = nil
+    if not skipShot then
+        shotTarget = target
+    end
+    local presses = nil
+    if prompt.seed and Checks.list[def.id] then
+        local played, result = pcall(SkillCheck.play, def.id, def.anim, prompt.actor or fightState.you, shotTarget, prompt.seed, livingParty(), target)
+        if not played then
+            return false
+        end
+        presses = result
+    end
+    local ok = Ui.request("FightAct", def.id, target, presses, prompt.turn)
+    return ok == true
+end
+
+local function trySkills(prompt)
+    if type(prompt.skills) ~= "table" then
+        return false
+    end
+    for _, label in ipairs(settings.Skills) do
+        local wanted = SKILL_BY_LABEL[label]
+        if wanted then
+            for _, entry in ipairs(prompt.skills) do
+                local def = skillDefs[wanted]
+                if entry.id == wanted and not entry.why and def then
+                    if useSkill(prompt, entry, def) then
+                        return true
+                    end
+                end
+            end
+        end
+    end
+    return false
+end
+
+local function autoTurn(token, prompt)
+    task.wait(1.2 + math.random() * 0.6)
+    for _ = 1, 8 do
+        if token ~= fightState.token or not alive then
+            return
+        end
+        if settings.AutoSkill and trySkills(prompt) then
+            return
+        end
+        if settings.AutoAttack then
+            local target = pickTarget()
+            if target then
+                pcall(Fight.select)
+                pcall(Fight.confirm, target)
+            end
+        end
+        task.wait(0.9)
+    end
+end
+
+local function pickCard(view)
+    local land = string.lower(tostring(view.land or settings.Land))
+    local priorities = settings.Scenes[land]
+    if priorities then
+        for _, wanted in ipairs(priorities) do
+            if wanted ~= NONE then
+                for index, card in ipairs(view.cards) do
+                    if string.lower(tostring(card.title)) == string.lower(wanted) then
+                        return index
+                    end
+                end
+            end
+        end
+    end
+    return 1
+end
+
+local function pickChoice(event)
+    local indexes = {}
+    for index, choice in ipairs(event.choices or {}) do
+        if not choice.off and not choice.hidden then
+            table.insert(indexes, index)
+        end
+    end
+    if #indexes == 0 then
+        return nil
+    end
+    if settings.VoteMode == "last" then
+        return indexes[#indexes]
+    end
+    return indexes[1]
+end
+
+local function sigOf(view)
+    local screen = tostring(view.screen)
+    local step = tostring(view.step)
+    if screen == "cards" and type(view.cards) == "table" then
+        local titles = {}
+        for index, card in ipairs(view.cards) do
+            titles[index] = tostring(card.title)
+        end
+        return "cards|" .. step .. "|" .. table.concat(titles, ",")
+    end
+    if screen == "event" and type(view.event) == "table" then
+        local event = view.event
+        return table.concat({ "event", step, tostring(event.title), event.result and "r" or "-", tostring(event.chosen) }, "|")
+    end
+    if screen == "camp" and type(view.camp) == "table" then
+        local camp = view.camp
+        return table.concat({ "camp", step, tostring(camp.title), tostring(camp.go), tostring(camp.home) }, "|")
+    end
+    if screen == "shop" and type(view.shop) == "table" then
+        return table.concat({ "shop", step, tostring(view.shop.title) }, "|")
+    end
+    return screen .. "|" .. step .. "|" .. tostring(view.scene)
+end
+
+local function decide(view)
+    local screen = view.screen
+    if screen == "cards" then
+        if settings.AutoScenes and not view.out and type(view.cards) == "table" and #view.cards > 0 then
+            return "RunVote", pickCard(view)
+        end
+    elseif screen == "camp" then
+        if settings.AutoCamp and type(view.camp) == "table" then
+            local camp = view.camp
+            local goHome = true
+            if camp.go and not camp.toward then
+                goHome = settings.FirstCamp == "home"
+            end
+            return "RunCamp", goHome
+        end
+    elseif screen == "event" then
+        local event = view.event
+        if type(event) == "table" then
+            if event.small or event.result then
+                if settings.AutoContinue then
+                    return "RunReady"
+                end
+            elseif settings.AutoVote and not view.out then
+                local index = pickChoice(event)
+                if index then
+                    return "RunVote", index
+                end
+            end
+        end
+    elseif screen == "shop" then
+        if settings.AutoContinue then
+            return "RunReady"
+        end
+    elseif screen == "scene" then
+        if settings.SkipCutscenes then
+            return "RunReady"
+        end
+    end
+    return nil
+end
+
+local function handleView(view)
+    if type(view) ~= "table" then
+        return
+    end
+    local sig = sigOf(view)
+    if sig == runState.viewSig then
+        return
+    end
+    local name, argument = decide(view)
+    if not name then
+        return
+    end
+    runState.viewSig = sig
+    task.spawn(function()
+        task.wait(0.7 + math.random() * 0.9)
+        if not alive or runState.viewSig ~= sig then
+            return
+        end
+        if view.screen == "scene" and Cutscene then
+            pcall(Cutscene.skip)
+        end
+        local ok, result, reason
+        if argument == nil then
+            ok, result, reason = pcall(Net.Request, Net, name)
+        else
+            ok, result, reason = pcall(Net.Request, Net, name, argument)
+        end
+        if not (ok and result) then
+            runState.viewSig = nil
+            notify(name .. " failed: " .. tostring(ok and reason or result))
+        end
+    end)
+end
+
+local offs = {}
+
+local function listen(name, callback)
+    table.insert(offs, Net:On(name, callback))
+end
+
+listen("RunView", function(view)
+    runState.inRun = true
+    runState.goCount = 0
+    if type(view) == "table" then
+        runState.lastScreen = view.screen
+        if view.screen == "camp" and type(view.camp) == "table" then
+            runState.lastCampMid = view.camp.go and not view.camp.toward and true or false
+        end
+    end
+    handleView(view)
+end)
+
+listen("RunEnd", function()
+    runState.inRun = false
+    runState.lastEnd = os.clock()
+    runState.endKind = (runState.lastScreen == "camp" and runState.lastCampMid) and "first" or "other"
+    runState.viewSig = nil
+end)
+
+listen("FightBegin", function(list, snap)
+    fightState.token = fightState.token + 1
+    fightState.you = nil
+    fightState.sides = {}
+    fightState.hp = {}
+    fightState.down = {}
+    if type(list) == "table" then
+        for _, entry in pairs(list) do
+            fightState.sides[entry.id] = entry.side
+            if entry.you then
+                fightState.you = entry.id
+            end
+        end
+    end
+    applySnap(snap)
+end)
+
+listen("FightStep", function(_, _, snap, extra)
+    applySnap(snap)
+    fightState.token = fightState.token + 1
+    local prompt = type(extra) == "table" and extra.prompt
+    if (settings.AutoAttack or settings.AutoSkill) and type(prompt) == "table" then
+        task.spawn(autoTurn, fightState.token, prompt)
+    end
+end)
+
+listen("FightEnd", function()
+    fightState.token = fightState.token + 1
+end)
+
+task.spawn(function()
+    while alive do
+        task.wait(1)
+        if alive then
+            pcall(tick)
+        end
+    end
+end)
+
+local unloaded = false
+
+local function unload()
+    if unloaded then
+        return
+    end
+    unloaded = true
+    alive = false
+    SkillCheck.play = originalPlay
+    SkillCheck.word = originalWord
+    for _, off in ipairs(offs) do
+        pcall(off)
+    end
+    env.SkillCheckPerfect = nil
+    pcall(function() MitHub:Destroy() end)
+end
+
+MitHub.Destroying:Connect(unload)
+
+env.SkillCheckPerfect = { unload = unload }
